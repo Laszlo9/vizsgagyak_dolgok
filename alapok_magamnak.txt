@@ -1,0 +1,169 @@
+npm install mysql
+npm install express
+
+const express = require('express');
+const mysql = require('mysql');
+const path = require('path');
+
+const app = express(); //a szerver változója
+app.use(express.static("public")); //a public legyen a gyökérmappa
+
+/---------------------------------------------------------------------
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'toltesek'
+});
+
+app.listen(4444, () => {
+    console.log('A szerver elindult a 4444-es porton.');
+});
+
+function lekeredez(sql){
+    return new Promise((resolve, reject) => {
+        db.query(sql, (err, rows) => {
+            if(err){
+                reject(err);
+            }else{
+                resolve(rows);
+            }
+        })
+    })
+}
+
+function cl(adat) {console.log(adat); }
+
+-*-*-
+node szerver
+-*-*-
+/-----------------------------------------------------------------------
+backend
+
+app.get('/adott_auto', (req, res) => {
+    const marka = req.query.marka;
+    lekeredez(`SELECT * 
+FROM toltes t
+WHERE car = '${marka}';`)
+    .then((tablak) => {
+        res.send(tablak);
+    }).catch((err) => {
+        res.status(500).send('Hiba történt a táblák lekérdezésénél!');
+    });
+});
+
+js
+function kocsi_lista_valaszt(){
+    var marka = document.getElementById("lista").value;
+    //alert(marka);
+
+    xhrAdottTable = new XMLHttpRequest();
+    xhrAdottTable.open("get", `/adott_auto?marka=${marka}`, true);
+    xhrAdottTable.send();
+
+    xhrAdottTable.onreadystatechange = function(){
+        if(xhrAdottTable.readyState === 4 && xhrAdottTable.status === 200){
+            var lista = JSON.parse(xhrAdottTable.responseText);
+
+            var s = "";
+            const mezok = Object.keys(lista[0]);
+            for (var mezo of mezok){
+                s += `<th onclick='sorClick(event)'>${mezo}</th>`;
+            }
+            document.getElementById("fejlec").innerHTML = s;
+
+            s = "";
+            for (var sor of lista){
+                //var tabla = document.getElementById("lista").value; 
+                    s += "<tr class='sor'>";
+                const ertekek = Object.values(sor);
+                for (var ertek of ertekek){
+                    s += `<td>${ertek}</td>`;
+                }
+                s += "</tr>";
+                document.getElementById("tartalom").innerHTML = s;
+            }
+        }
+    
+    }
+}
+
+/----------------------------------------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+    //az első kérés változója
+    xhrTablak = new XMLHttpRequest();
+
+    //*** 1. Itt kérem el a táblák listáját a szervertől
+    xhrTablak.open("get", "/tablalista", true)
+    xhrTablak.send();
+
+    //*** 3. megérkezik a szerver válasza
+    xhrTablak.onreadystatechange = function() {
+        if(xhrTablak.readyState === 4 && xhrTablak.status === 200){
+            var lista = JSON.parse(xhrTablak.responseText);
+            //cl(lista);
+            var s = "";
+            for (var elem of lista){
+                s += `<option>${elem.Tables_in_budapest}</option>`;
+            }
+            document.getElementById("lista").innerHTML = s;
+            document.getElementById("lista").value = "";
+        }
+    }
+});
+/----------------------------------------------------------------------
+navbar, scrollozás
+    overflow-x: auto;
+    overflow-y: auto;
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-warning">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+              <a class="nav-link" id="table" onclick="szallodak()">Szállodák<span></span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="utvonal" onclick="datumok()">Dátumok</a>
+            </li>
+          </ul>
+    </nav>
+
+/-----------------------------------------------------------------------
+  <link rel="stylesheet" href="index.css">
+/-----------------------------------------------------------------------
+linq
+
+alap
+List<uzemanyag> list = new List<uzemanyag>();
+            foreach (string item in File.ReadAllLines("uzemanyag.txt", Encoding.UTF8))
+            {
+                list.Add(new uzemanyag(item));
+            }
+
+objektum
+    class uzemanyag
+        {
+            public DateTime datum { get; set; }
+            public int benzin { get; set; }
+            public int gazolaj { get; set; }
+            public double kulonbseg { get; set; }
+            public bool szokoev { get; set; }
+
+
+            public uzemanyag(string sor) 
+            {
+                string[] arr = sor.Split(';');
+                datum = Convert.ToDateTime(arr[0]);
+                benzin = Convert.ToInt32(arr[1]);
+                gazolaj = Convert.ToInt32(arr[2]);
+                kulonbseg = Math.Abs(benzin - gazolaj);
+                szokoev = datum.Year % 4 == 0 ? true : false;
+            }
+        }
+
+fájlba írás
+           List<string> list2 = new List<string>();
+            foreach (uzemanyag item in list)
+            {
+                list2.Add($"{item.datum.Year}.{item.datum.Month}.{item.datum.Day};{Math.Round(item.benzin / euro_arfolyam, 2)};{Math.Round(item.gazolaj / euro_arfolyam, 2)}");
+            }
+            File.WriteAllLines("euro.txt", list2);
